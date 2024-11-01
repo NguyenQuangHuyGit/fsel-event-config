@@ -31,6 +31,7 @@
                     <OverlayBadge :value="convertWeekEventToList().length" style="width: max-content; margin: 10px 0;">
                         <Button class="btn" label="Các sự kiện tuần đã thêm" icon="pi pi-external-link" @click="dialogVisible = true" />
                     </OverlayBadge>
+                    <!-- <Button class="btn" label="ActionConfigs" icon="pi pi-external-link" @click="dialogActionConfig = true" /> -->
                     <Dialog v-model:visible="dialogVisible" header="Sự kiện tuần" :style="{ width: '75vw' }" maximizable modal :contentStyle="{ height: '300px' }">
                         <DataTable :value="convertWeekEventToList()" dataKey="id" size="small" stripedRows scrollable scrollHeight="300px">
                             <Column field="title" header="Tiêu đề"></Column>
@@ -49,6 +50,22 @@
                                     {{ formatDate(data.endDate).result }}
                                 </template>
                             </Column>
+                            <Column :exportable="false" style="width: 12rem;">
+                                <template #body="{ data }">
+                                    <Button icon="pi pi-pencil" outlined rounded class="mr-2" size="small" @click="handleShowFormEditWeekEvent(data)" style="margin-right: 10px;"/>
+                                    <Button icon="pi pi-trash" outlined rounded severity="danger" size="small" @click="handleDeleteWeekEvent(data)" />
+                                </template>
+                            </Column>
+                        </DataTable>
+                        <template #footer>
+                            <Button class="btn" label="Thêm sự kiện tuần" icon="pi pi-plus" @click="handleShowFormAddWeekEvent" />
+                            <Button class="btn" label="Hoàn tất" icon="pi pi-check" @click="dialogVisible = false" />
+                        </template>
+                    </Dialog>
+                    <Dialog v-model:visible="dialogActionConfig" header="ActionConfig" :style="{ width: '75vw' }" maximizable modal :contentStyle="{ height: '300px' }">
+                        <DataTable :value="convertWeekEventToList()" dataKey="id" size="small" stripedRows scrollable scrollHeight="300px">
+                            <Column field="title" header="Action"></Column>
+                            <Column field="rules" header="EndDate"></Column>
                             <Column :exportable="false" style="width: 12rem;">
                                 <template #body="{ data }">
                                     <Button icon="pi pi-pencil" outlined rounded class="mr-2" size="small" @click="handleShowFormEditWeekEvent(data)" style="margin-right: 10px;"/>
@@ -92,6 +109,7 @@ const startAwardDate = ref();
 const endAwardDate = ref();
 const objectWeekEvent = ref({});
 const dialogVisible = ref(false);
+const dialogActionConfig = ref(false);
 const isShowAddWeekEventForm = ref(false);
 const formMode = ref(0);
 const data = ref(null);
@@ -179,7 +197,7 @@ async function saveEventConfig() {
                         "image": "string",
                         "title": "string",
                         "content": ["string"],
-                        "footer": ["string"]
+                        "footer": ["TRÂN TRỌNG CẢM ƠN!", "FIVE-STAR E-LEARNING (FSEL)"]
                     }
                 }
             ],

@@ -31,6 +31,7 @@
         <OverlayBadge :value="convertWeekEventToList().length" style="width: max-content; margin: 10px 0;">
             <Button class="btn" label="Các sự kiện tuần đã thêm" icon="pi pi-external-link" @click="dialogVisible = true" />
         </OverlayBadge>
+        <Button class="btn" label="ActionConfigs" icon="pi pi-external-link" @click="dialogActionConfig = true" />
         <Dialog v-model:visible="dialogVisible" header="Sự kiện tuần" :style="{ width: '75vw' }" maximizable modal :contentStyle="{ height: '300px' }">
             <DataTable :value="convertWeekEventToList()" dataKey="id" size="small" stripedRows scrollable scrollHeight="300px">
                 <Column field="title" header="Tiêu đề"></Column>
@@ -61,8 +62,28 @@
                 <Button class="btn" label="Hoàn tất" icon="pi pi-check" @click="dialogVisible = false" />
             </template>
         </Dialog>
+        <Dialog v-model:visible="dialogActionConfig" header="ActionConfig" :style="{ width: '75vw' }" maximizable modal :contentStyle="{ height: '300px' }">
+            <DataTable :value="convertActionConfigToList()" dataKey="id" size="small" stripedRows scrollable scrollHeight="300px">
+                <Column field="action" header="Action"></Column>
+                <Column field="endDate" header="EndDate">
+                    <template #body="{ data }">
+                        {{ formatDate(data.endDate).result }}
+                    </template>
+                </Column>
+                <Column :exportable="false" style="width: 12rem;">
+                    <template #body="{ data }">
+                        <Button icon="pi pi-pencil" outlined rounded class="mr-2" size="small" @click="handleShowFormEditActionConfig(data)" style="margin-right: 10px;"/>
+                        <Button icon="pi pi-trash" outlined rounded severity="danger" size="small" @click="handleDeleteActionConfig(data)" />
+                    </template>
+                </Column>
+            </DataTable>
+            <template #footer>
+                <Button class="btn" label="Thêm mới actionconfig" icon="pi pi-plus" @click="handleShowFormAddActionConfig" />
+            </template>
+        </Dialog>
         <Teleport to="body">
             <AddWeekEventForm v-if="isShowAddWeekEventForm" @closeAddWeekEventForm="isShowAddWeekEventForm = false" @updateWeekEvent="handleUpdateWeekEvent" @addWeekEvent="handleAddWeekEvent" :formMode="formMode" :data="data"/>
+            <AddActionConfigForm v-if="isShowAddActionConfigForm" @closeAddWeekEventForm="isShowAddActionConfigForm  = false" @addConfig="handleAddConfig" @updateConfig="handleUpdateConfig" :formMode="formMode" :data="data"/>
         </Teleport>
         <Button label="Lưu" @click="saveEventConfig" class="btn"/>
     </div>
@@ -71,6 +92,7 @@
 <script setup>
 import AddWeekEventForm from './AddWeekEventForm.vue';
 import EventService from '@/service/service.js';
+import AddActionConfigForm from './AddActionConfigForm.vue';
 import { useToast } from "primevue/usetoast";
 import { ref } from 'vue';
 import { Guid } from 'js-guid';
@@ -82,10 +104,13 @@ const startAwardDate = ref(null);
 const endAwardDate = ref(null);
 const objectWeekEvent = ref({});
 const dialogVisible = ref(false);
+const dialogActionConfig = ref(false);
 const isShowAddWeekEventForm = ref(false);
+const isShowAddActionConfigForm = ref(false);
 const formMode = ref(0);
 const data = ref(null);
 const initData = ref(null);
+const objectActionConfigs = ref({});
 
 const isExistEventCode = ref(false);
 const isSearching = ref(false);
@@ -100,6 +125,15 @@ const convertObjectWeekEvent = (weekEvents) => {
     return newObjectWeekEvent;
 }
 
+const convertObjectActionConfig = (actionConfig) => {
+    let newObjectActionConfig = {};
+    actionConfig.forEach(config => {
+        var id = Guid.newGuid();
+        newObjectActionConfig[id] = {...config, id: id };
+    });
+    return newObjectActionConfig;
+}
+
 const handleSearchEvent = async () => {
     try {
         isSearching.value = true;
@@ -112,6 +146,7 @@ const handleSearchEvent = async () => {
             startAwardDate.value = event.awardStartDate ? new Date(event.awardStartDate) : new Date();
             endAwardDate.value = event.awardEndDate ? new Date(event.awardEndDate) : new Date();
             objectWeekEvent.value = convertObjectWeekEvent(event.weekEvents);
+            objectActionConfigs.value = convertObjectActionConfig(event.actionConfigs);
             isExistEventCode.value = true;
         }else {
             toast.add({ severity: 'error', summary: 'Hehe', detail: 'Không tìm thấy sự kiện', life: 3000 });
@@ -126,6 +161,11 @@ const handleSearchEvent = async () => {
 
 const convertWeekEventToList = () => {
     let newListWeekEvent = [...Object.values(objectWeekEvent.value)];
+    return newListWeekEvent;
+}
+
+const convertActionConfigToList = () => {
+    let newListWeekEvent = [...Object.values(objectActionConfigs.value)];
     return newListWeekEvent;
 }
 
@@ -155,20 +195,42 @@ const handleShowFormAddWeekEvent = () => {
     data.value = null;
 }
 
+const handleShowFormAddActionConfig = () => {
+    formMode.value = 0;
+    isShowAddActionConfigForm.value = true;
+    data.value = null;
+}
+
 const handleShowFormEditWeekEvent = (dataWeekEvent) => {
     formMode.value = 1;
     isShowAddWeekEventForm.value = true;
     data.value = { ...dataWeekEvent };
 }
 
+const handleShowFormEditActionConfig = (dataActionConfig) => {
+    formMode.value = 1;
+    isShowAddActionConfigForm.value = true;
+    data.value = { ...dataActionConfig };
+}
+
 const handleDeleteWeekEvent = (data) => {
     delete objectWeekEvent.value[data.id];
+};
+
+const handleDeleteActionConfig = (data) => {
+    delete objectActionConfigs.value[data.id];
 };
 
 function handleUpdateWeekEvent(weekEvent) {
     var id = weekEvent.id;
     objectWeekEvent.value[id] = weekEvent;
     isShowAddWeekEventForm.value = false;
+}
+
+function handleUpdateConfig(actionConfig) {
+    var id = actionConfig.id;
+    objectActionConfigs.value[id] = actionConfig;
+    isShowAddActionConfigForm.value = false;
 }
 
 function handleAddWeekEvent(weekEvent) {
@@ -178,6 +240,13 @@ function handleAddWeekEvent(weekEvent) {
     isShowAddWeekEventForm.value = false;
 }
 
+function handleAddConfig(actionConfig) {
+    var id = Guid.newGuid();
+    actionConfig.id = id;
+    objectActionConfigs.value[id] = actionConfig;
+    isShowAddActionConfigForm.value = false;
+}
+
 const resetValue = () => {
     eventCode.value = '';
     startRegisterDate.value = null;
@@ -185,10 +254,14 @@ const resetValue = () => {
     startAwardDate.value = null;
     endAwardDate.value = null;
     objectWeekEvent.value = {};
+    objectActionConfigs.value = {};
     dialogVisible.value = false;
+    dialogActionConfig.value = false;
     isShowAddWeekEventForm.value = false;
+    isShowAddActionConfigForm.value = false;
     formMode.value = 0;
     data.value = null;
+    initData.value = null;
     isExistEventCode.value = false;
 }
 
@@ -200,7 +273,8 @@ async function saveEventConfig() {
         awardStartDate: startAwardDate.value ?? new Date(),
         awardEndDate: endAwardDate.value ?? new Date(),
         weekEvents: convertWeekEventToList(),
-     };
+        actionConfigs: convertActionConfigToList()
+    };
     var result = { 
         ...initData.value, 
         eventCode: eventCode.value,
